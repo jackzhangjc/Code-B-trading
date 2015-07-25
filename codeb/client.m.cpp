@@ -20,19 +20,29 @@ using namespace galik::net;
 
 socketstream ss;
 
+
+
 struct Stock {
     string ticker;
     double netWorth;
+    vector<double> history;
     double dividendRatio;
     double volatility;
+    vector<double> prices;
+    double avg;
+    double sum;
     
     Stock(string ticker, double netWorth, double dividendRatio, double volatility): ticker(ticker), netWorth(netWorth), dividendRatio(dividendRatio), volatility(volatility){}
 };
+
+#define check_size 5
+vector<Stock> allStocks;
 
 struct MyStock {
     string ticker;
     int shares;
     double dividendRatio;
+
     
     MyStock(string ticker, int shares, double dividendRatio): ticker(ticker), shares(shares), dividendRatio(dividendRatio){}
 };
@@ -166,6 +176,9 @@ bool clearBid(string ticker) {
     return false;
 }
 
+
+
+
 bool ask(string ticker, double price, int shares) {
     ss << "ASK " << ticker << " " << price << " " << shares << endl;
     if (ss.good() && !ss.eof()) {
@@ -287,6 +300,60 @@ void showSecurities() {
     }
 }
 
+
+double getMarketValue(string ticker){
+    vector<MyOrder> v = orders("ALL", ticker);
+    double sum = 0;
+    int c = 0;
+    double min = 1000000;
+    for (int i = 0; i < v.size(); i++){
+            sum += v[i].price * v[i].shares;
+            c = c + v[i].shares;
+    }
+    return sum/c;
+}
+
+
+double getAskPrice(string ticker){
+    vector<MyOrder> v = orders("ALL", ticker);
+    double sum = 0;
+    int c = 0;
+    double min = 1000000;
+    for (int i = 0; i < v.size(); i++){
+
+        if (v[i].type == "ASK"){
+            if (min > v[i].price) {
+                min = v[i].price;
+            }
+            //sum += v[i].price * v[i].shares;
+            //c = c + v[i].shares;
+        }
+    }
+    return min;
+    //return sum/c;
+}
+
+double getBidPrice(string ticker){
+    vector<MyOrder> v = orders("ALL", ticker);
+    double sum = 0;
+    int c = 0;
+    double max = 0;
+
+    for (int i = 0; i < v.size(); i++){
+
+
+        if (v[i].type == "BID"){
+            if (max < v[i].price) {
+                max = v[i].price;
+            }
+            //sum += v[i].price * v[i].shares;
+            //c = c + v[i].shares;
+        }
+    }
+    return max;
+    //return sum/c;
+}
+
 //vector<Order> orders(string ticker) {
 //    ss << "ORDERS " << ticker << " " << endl;
 //    string line;
@@ -325,19 +392,108 @@ void showSecurities() {
 /*
 *
 */
+Stock findHighest(){
+    double max = 0;
+    Stock result = Stock("",1,1,1);
+    for (int i=0; i < allStocks.size(); i++){
+        double t = allStocks[i].netWorth * allStocks[i].dividendRatio;
+        if (t>max){
+            max = t;
+            result = allStocks[i];
+        }
+    }
+    return result;
+
+}
+
+void update(){
+    vector<Stock> newS = securities();
+    for (int i = 0;  i < newS.size(); i++){
+        allStocks[i].netWorth = newS[i].netWorth;
+        allStocks[i].history.push_back(newS[i].netWorth);
+        allStocks[i].dividendRatio = newS[i].dividendRatio;
+    }
+}
+
+void SellOrders(){
+    vector<MyStock> my_securities = mySecurities();
+    for (int i=0; i < my_securities.size(); i++){
+        if (my_securities[i].shares > 0) {
+            MyStock s = my_securities[i];
+            double avg;
+            for (int j =0; j<allStocks.size(); j++){
+                if (allStocks[j].ticker == s.ticker){
+                    avg = allStocks[j].avg;
+                }
+            }
+            double currentBid = getBidPrice(s.ticker);
+
+            if (currentBid > avg) {
+                ask(s.ticker, currentBid, s.shares);
+            }
+        }
+    }
+}
+
+
+void BuyBasedOnHistory() {
+
+    for (int i=0; i < allStocks.size(); i++){
+        int sum = 0;
+        Stock t = allStocks[i];
+                int size = t.history.size();    
+        if (size > check_size ) size = check_size;
+        for (int j = t.history.size() - size; j < t.history.size(); j++){
+            sum = sum + t.history[j] - t.history[j-1];   
+        }
+
+        if (sum > 1000) {
+            double askp = getAskPrice(t.ticker);
+            bid(t.ticker, askp, 5);
+                allStocks[i].avg = (allStocks[i].avg*allStocks[i].prices.size() + askp) / (allStocks[i].prices.size()+1);
+                allStocks[i].prices.push_back(askp);
+                cout<< allStocks[i].ticker<<' ' <<askp<<endl;
+        }
+    }
+}
+
 int main(int argc, char** argv) {
 	ss.open("codebb.cloudapp.net", 17429);
     ss << "TripleG sjj" << "\n";
     //--------------------------------------
-    
+
+    allStocks = securities();
     showMyCash();
     showSecurities();
-    bid("BUD",12,50);
-    ask("BUD",20,50);
-    showOrders("MY", "");
-    showMySecurities();
-    clearBid("BUD");
-    showOrders("ALL", "BUD");
+    //bid("BUD",12,50);
+    //ask("BUD",20,50);
+    //showOrders("MY", "");
+    //showMySecurities();
+    //clearBid("BUD");
+    //showOrders("ALL", "AAPL");
+
+    while (true){
+
+        update();
+        BuyBasedOnHistory();
+        cout<<allStocks[0].netWorth<<endl;
+        SellOrders();
+        Stock high = findHighest();
+        double askp = getAskPrice(high.ticker);
+        bool success = bid(high.ticker,askp, 5);
+        for (int i=0; i < allStocks.size(); i++){
+            if (allStocks[i].ticker == high.ticker){
+                allStocks[i].avg = (allStocks[i].avg*allStocks[i].prices.size() + askp) / (allStocks[i].prices.size()+1);
+                allStocks[i].prices.push_back(askp);
+                cout<< allStocks[i].ticker<<' ' <<askp<<endl;
+            }
+        }
+
+
+    }
+    //cout<<getAskPrice("AAPL");
+    //Stock temp = findHighest();
+    //cout<< temp.ticker <<endl;
     //--------------------------------------
     ss << "\nCLOSE_CONNECTION" << endl;
 	return 0;
