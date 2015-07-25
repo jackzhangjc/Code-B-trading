@@ -28,6 +28,9 @@ std::vector<std::string> &split(const std::string &s, char delim, std::vector<st
 }
 
 vector<stock> stocks;
+socketstream ss;
+string name = "TripleG";
+string password = "sjj";
 
 struct stock {
 	string ticker;
@@ -35,6 +38,31 @@ struct stock {
 	int shareNum;
 	double dividenRatio;
 };
+
+void InitialStocks() {
+
+}
+
+void fetchStocks() {
+
+}
+
+stock getHighestDividen() {
+
+}
+
+double getCurrentCash() {
+
+}
+
+void bid(string ticker, double price, int shareNum) {
+
+}
+
+void ask(string ticker, double price, int shareNum) {
+
+}
+
 
 /*
 *
@@ -46,12 +74,11 @@ int main(int argc, char** argv) {
 		exit(1);
 	}
 
-	string name = "TripleG";
-	string password = "sjj";
+
 	string host = "codebb.cloudapp.net";
 	int port = 17429;
 
-	socketstream ss;
+
 	ss.open(host, port);
 
 	// string command("");
@@ -63,7 +90,11 @@ int main(int argc, char** argv) {
 
 	//ss << name << " " << password << "\n" << endl;
 
+	InitialStocks(); //Call security
+
 	while(true) {
+		fetchStocks();
+		stock s = getHighestDividen();
 
 	}
 
