@@ -27,6 +27,15 @@ std::vector<std::string> &split(const std::string &s, char delim, std::vector<st
 	return elems;
 }
 
+vector<stock> stocks;
+
+struct stock {
+	string ticker;
+	double earnings;
+	int shareNum;
+	double dividenRatio;
+};
+
 /*
 *
 */
@@ -37,20 +46,28 @@ int main(int argc, char** argv) {
 		exit(1);
 	}
 
-	string name(argv[1]);
-	string password(argv[2]);
+	string name = "TripleG";
+	string password = "sjj";
+	string host = "codebb.cloudapp.net";
+	int port = 17429;
 
 	socketstream ss;
-	ss.open(argv[3], atoi(argv[4]));
+	ss.open(host, port);
 
-	string command("");
-	for (int i = 5; i < argc; i++) {
-		command += argv[i];
-		command += " ";
+	// string command("");
+	// for (int i = 5; i < argc; i++) {
+	// 	command += argv[i];
+	// 	command += " ";
+	// }
+	// command;
+
+	//ss << name << " " << password << "\n" << endl;
+
+	while(true) {
+
 	}
-	command;
 
-	ss << name << " " << password << "\n" << command << "\nCLOSE_CONNECTION" << endl;
+	//ss << name << " " << password << "\n" << command << "\nCLOSE_CONNECTION" << endl;
 
 	while (ss.good() && !ss.eof()) {
 		string line;
