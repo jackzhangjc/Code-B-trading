@@ -300,20 +300,6 @@ void showSecurities() {
     }
 }
 
-
-double getMarketValue(string ticker){
-    vector<MyOrder> v = orders("ALL", ticker);
-    double sum = 0;
-    int c = 0;
-    double min = 1000000;
-    for (int i = 0; i < v.size(); i++){
-            sum += v[i].price * v[i].shares;
-            c = c + v[i].shares;
-    }
-    return sum/c;
-}
-
-
 double getAskPrice(string ticker){
     vector<MyOrder> v = orders("ALL", ticker);
     double sum = 0;
@@ -428,7 +414,7 @@ void SellOrders(){
             }
             double currentBid = getBidPrice(s.ticker);
 
-            if (currentBid > avg) {
+            if (avg < currentBid){
                 ask(s.ticker, currentBid, s.shares);
             }
         }
